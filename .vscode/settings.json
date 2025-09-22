@@ -1,0 +1,8 @@
+{
+    "files.exclude": {
+        "**/.git": false
+    },
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnPaste": true
+}
