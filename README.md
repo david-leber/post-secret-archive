@@ -5,7 +5,7 @@ PostSecret Archive Project
 Currently not enforcing restrictions on committing to main, but all changes should be pushed to a branch which should then be merged in using a PR (at least one reviewer.)
 
 Before merging code, ensure you:
-1. `uvx ruff format`
-2. `uvx ruff check`
-3. `uvx pyright`
-4. `uvx pytest`
+1. `uv run ruff format`
+2. `uv run ruff check`
+3. `uv run pyright`
+4. `uv run pytest`

@@ -1,5 +1,5 @@
 def main():
-    print("Hello from post-secret-archive!")
+    print("Hello from image-text-mvp!")
 
 
 if __name__ == "__main__":

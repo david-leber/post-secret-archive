@@ -1,0 +1,38 @@
+[project]
+name = "image-text-mvp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.40.37",
+    "flask>=3.1.2",
+    "psycopg2-binary>=2.9.10",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.405",
+    "boto3-stubs>=1.40.37",
+    "ruff>=0.13.1",
+]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+reportMissingImports = true
+reportMissingTypeStubs = true
+reportImportCycles = true
+reportUnusedImport = true
+reportUnusedClass = true
+reportUnusedFunction = true
+reportUnusedVariable = true
+reportDuplicateImport = true
+reportUntypedFunctionDecorator = true
+reportUntypedClassDecorator = true
+reportUntypedBaseClass = true
+reportUntypedNamedTuple = true
+reportPrivateUsage = true
+reportConstantRedefinition = true
+reportIncompatibleMethodOverride = true
+reportIncompatibleVariableOverride = true
+reportInconsistentConstructor = true

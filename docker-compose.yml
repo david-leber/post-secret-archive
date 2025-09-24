@@ -1,0 +1,76 @@
+services:
+  # LocalStack - S3 Emulator
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=mvp_user
+      - POSTGRES_PASSWORD=mvp_password
+      - POSTGRES_DB=image_text_mvp
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./image-text-mvp/init-db:/docker-entrypoint-initdb.d
+
+  # WordPress
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - "8080:80"
+    environment:
+      - WORDPRESS_DB_HOST=wordpress-db
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=wordpress
+    volumes:
+      - wordpress-data:/var/www/html
+      - ./wordpress-plugins:/var/www/html/wp-content/plugins/custom
+    depends_on:
+      - wordpress-db
+
+  # WordPress MySQL Database
+  wordpress-db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+    volumes:
+      - wordpress-db-data:/var/lib/mysql
+
+  # Flask Extraction Tool
+  flask-app:
+    build: ./image-text-mvp/extraction-tool
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://mvp_user:mvp_password@postgres:5432/image_text_mvp
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - S3_BUCKET_NAME=image-text-bucket
+    volumes:
+      - ./image-text-mvp/extraction-tool:/app
+    depends_on:
+      - postgres
+      - localstack
+
+volumes:
+  postgres-data:
+  wordpress-data:
+  wordpress-db-data:

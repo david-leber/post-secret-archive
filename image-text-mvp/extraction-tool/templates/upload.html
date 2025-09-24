@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Image{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 1.5rem;">Upload Image</h2>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select Image File:</label>
+            <input type="file" name="file" accept="image/*" required 
+                   style="display: block; width: 100%; padding: 0.75rem; border: 2px dashed #ddd; border-radius: 4px; cursor: pointer;"
+                   onchange="previewImage(event)">
+            <small style="color: #7f8c8d; margin-top: 0.5rem; display: block;">
+                Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF (Max 16MB)
+            </small>
+        </div>
+        
+        <div id="preview" style="margin-bottom: 1.5rem; text-align: center;"></div>
+        
+        <button type="submit" class="btn">Upload & Extract Text</button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary" style="margin-left: 1rem;">Cancel</a>
+    </form>
+</div>
+
+<script>
+function previewImage(event) {
+    const preview = document.getElementById('preview');
+    const file = event.target.files[0];
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 100%; max-height: 400px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`;
+        }
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+{% endblock %}
