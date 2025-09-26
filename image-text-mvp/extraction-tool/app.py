@@ -5,7 +5,6 @@ from utils.db_handler import DBHandler
 from config import Config
 
 from typing import Any
-from werkzeug.datastructures import FileStorage
 
 import logging
 import sys
@@ -46,49 +45,70 @@ def upload():
 
 @app.route("/upload", methods=["POST"])
 def upload_post():
-    """Upload image to S3 and create DB record"""
+    """Upload multiple images to S3 and create DB records"""
     LOG.info(f"POST request received. Files: {list(request.files.keys())}")
-    if "file" not in request.files:
-        LOG.error("No 'file' key in request.files")
-        flash("No file selected", "error")
+    if "files" not in request.files:
+        LOG.error("No 'files' key in request.files")
+        flash("No files selected", "error")
         return redirect(request.url)
 
-    file: FileStorage = request.files["file"]
-    LOG.info(f"File received: {file.filename}")
-    if file.filename is None or file.filename == "":
-        LOG.error("File has no filename")
-        flash("No file selected", "error")
+    files = request.files.getlist("files")
+    LOG.info(f"Files received: {[f.filename for f in files]}")
+
+    if not files or all(f.filename == "" for f in files):
+        LOG.error("No files selected")
+        flash("No files selected", "error")
         return redirect(request.url)
 
-    if file and allowed_file(file.filename):
-        LOG.info(f"Accepted file {file.filename}")
-        filename = clean_file_name(file.filename)
-        s3_key = f"images/{filename}"
+    uploaded_images: list[dict[str, int | str]] = []
+    errors: list[str] = []
 
-        try:
-            # Upload to S3
-            s3_handler = S3Handler()
-            file.seek(0)  # Reset file pointer
-            s3_url = s3_handler.upload_file(file, s3_key)
-            LOG.info(f"File uploaded to S3: {s3_url}")
+    for file in files:
+        if file.filename and allowed_file(file.filename):
+            LOG.info(f"Processing file {file.filename}")
+            filename = clean_file_name(file.filename)
+            s3_key = f"images/{filename}"
 
-            # Save to database
-            db = DBHandler()
-            image_id = db.insert_image(filename, s3_key, Config.S3_BUCKET_NAME)
-            db.close()
-            LOG.info(f"Saved to DB with {image_id=}")
+            try:
+                # Upload to S3
+                s3_handler = S3Handler()
+                file.seek(0)  # Reset file pointer
+                s3_url = s3_handler.upload_file(file, s3_key)
+                LOG.info(f"File uploaded to S3: {s3_url}")
 
-            flash(f"Image uploaded successfully! ID: {image_id}", "success")
-            return redirect(url_for("extract", image_id=image_id))
-        except Exception as e:
-            flash(f"Error uploading file: {str(e)}", "error")
-            return redirect(request.url)
+                # Save to database
+                db = DBHandler()
+                image_id = db.insert_image(filename, s3_key, Config.S3_BUCKET_NAME)
+                db.close()
+                LOG.info(f"Saved to DB with {image_id=}")
+
+                uploaded_images.append({"id": image_id, "filename": filename})
+            except Exception as e:
+                LOG.error(f"Error uploading {file.filename}: {str(e)}")
+                errors.append(f"Error uploading {file.filename}: {str(e)}")
+        else:
+            if file.filename:
+                error_msg = f"Invalid file type for {file.filename}. Allowed types: png, jpg, jpeg, gif, bmp, tiff"
+                LOG.error(error_msg)
+                errors.append(error_msg)
+
+    # Show results to user
+    if uploaded_images:
+        flash(f"Successfully uploaded {len(uploaded_images)} image(s)!", "success")
+
+        # If errors occurred, show them too
+        if errors:
+            for error in errors:
+                flash(error, "error")
+
+        # Redirect to first uploaded image for processing
+        return redirect(url_for("extract", image_id=uploaded_images[0]["id"]))
     else:
-        message = (
-            "Invalid file type. Allowed types: png, jpg, jpeg, gif, bmp, tifferror"
-        )
-        LOG.error(message)
-        flash(message)
+        if errors:
+            for error in errors:
+                flash(error, "error")
+        else:
+            flash("No valid images were uploaded", "error")
         return redirect(request.url)
 
 

@@ -8,10 +8,10 @@
     
     <form method="POST" enctype="multipart/form-data">
         <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select Image File:</label>
-            <input type="file" name="file" accept="image/*" required 
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select Image Files:</label>
+            <input type="file" name="files" accept="image/*" required multiple
                    style="display: block; width: 100%; padding: 0.75rem; border: 2px dashed #ddd; border-radius: 4px; cursor: pointer;"
-                   onchange="previewImage(event)">
+                   onchange="previewImages(event)">
             <small style="color: #7f8c8d; margin-top: 0.5rem; display: block;">
                 Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF (Max 16MB)
             </small>
@@ -25,16 +25,32 @@
 </div>
 
 <script>
-function previewImage(event) {
+function previewImages(event) {
     const preview = document.getElementById('preview');
-    const file = event.target.files[0];
-    
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            preview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 100%; max-height: 400px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`;
-        }
-        reader.readAsDataURL(file);
+    const files = event.target.files;
+
+    if (files.length > 0) {
+        let previewHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">';
+
+        Array.from(files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewHTML += `
+                    <div style="text-align: center;">
+                        <img src="${e.target.result}" alt="Preview ${index + 1}"
+                             style="max-width: 100%; max-height: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">${file.name}</p>
+                    </div>
+                `;
+
+                // Update preview when all files are loaded
+                if (index === files.length - 1) {
+                    previewHTML += '</div>';
+                    preview.innerHTML = previewHTML;
+                }
+            }
+            reader.readAsDataURL(file);
+        });
     }
 }
 </script>
