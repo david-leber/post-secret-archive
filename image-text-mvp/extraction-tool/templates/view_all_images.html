@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}View All Images - Image Text Extraction{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>All Images</h2>
+        <a href="{{ url_for('admin_tools') }}" class="btn btn-secondary">← Back to Admin Tools</a>
+    </div>
+
+    {% if images %}
+        <div style="margin-bottom: 1rem;">
+            <p><strong>Total Images:</strong> {{ images|length }}</p>
+        </div>
+
+        {% for image in images %}
+        <div class="image-row" style="display: flex; border: 1px solid #ddd; margin-bottom: 1rem; border-radius: 8px; overflow: hidden; background: white;">
+            <!-- Image Column -->
+            <div style="flex: 0 0 300px; padding: 1rem;">
+                <img src="{{ image.url }}" alt="{{ image.filename }}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 4px;">
+                <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+                    <strong>{{ image.filename }}</strong><br>
+                    ID: {{ image.id }}<br>
+                    Uploaded: {{ image.created_at.strftime('%Y-%m-%d %H:%M') if image.created_at else 'Unknown' }}
+                </div>
+            </div>
+
+            <!-- Text Column -->
+            <div style="flex: 1; padding: 1rem; border-left: 1px solid #ddd;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                    <h4>Extracted Text</h4>
+                    <button onclick="confirmDelete({{ image.id }}, '{{ image.filename }}')"
+                            style="background: #e74c3c; color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 1.2rem; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"
+                            title="Delete this image">
+                        ✕
+                    </button>
+                </div>
+
+                {% if image.text_content %}
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; border: 1px solid #e9ecef; white-space: pre-wrap; font-family: inherit;">{{ image.text_content }}</div>
+                    {% if image.text_created_at %}
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+                            Extracted: {{ image.text_created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div style="color: #999; font-style: italic; padding: 1rem; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef;">
+                        No text extracted yet
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <a href="{{ url_for('extract', image_id=image.id) }}" class="btn" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                            Extract Text
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+    {% else %}
+        <div style="text-align: center; padding: 3rem; color: #999;">
+            <h3>No images found</h3>
+            <p>Upload some images to get started!</p>
+            <a href="{{ url_for('upload') }}" class="btn" style="margin-top: 1rem;">Upload Image</a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 400px; text-align: center;">
+        <h3 style="margin-bottom: 1rem; color: #e74c3c;">Delete Image</h3>
+        <p style="margin-bottom: 2rem;">Are you sure you want to delete <strong id="deleteFileName"></strong>?</p>
+        <p style="margin-bottom: 2rem; color: #666; font-size: 0.9rem;">This action cannot be undone. Both the image and any extracted text will be permanently deleted.</p>
+        <div>
+            <button onclick="closeDeleteModal()" class="btn btn-secondary" style="margin-right: 1rem;">Cancel</button>
+            <form id="deleteForm" method="POST" style="display: inline;">
+                <button type="submit" class="btn" style="background: #e74c3c;">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(imageId, filename) {
+    document.getElementById('deleteFileName').textContent = filename;
+    document.getElementById('deleteForm').action = '/admin/delete_image/' + imageId;
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// Close modal when clicking outside of it
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

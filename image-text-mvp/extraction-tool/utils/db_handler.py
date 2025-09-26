@@ -48,13 +48,35 @@ class DBHandler:
         """Get processing statistics"""
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                """SELECT 
+                """SELECT
                     COUNT(DISTINCT i.id) as total_images,
                     COUNT(DISTINCT et.image_id) as processed_images
-                   FROM images i 
+                   FROM images i
                    LEFT JOIN extracted_text et ON i.id = et.image_id"""
             )
             return cur.fetchone()
+
+    def get_all_images_with_text(self):
+        """Get all images with their extracted text (if any)"""
+        with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """SELECT
+                    i.id, i.filename, i.s3_key, i.s3_bucket, i.created_at,
+                    et.text_content, et.extracted_at as text_created_at
+                   FROM images i
+                   LEFT JOIN extracted_text et ON i.id = et.image_id
+                   ORDER BY i.created_at DESC"""
+            )
+            return cur.fetchall()
+
+    def delete_image(self, image_id: int):
+        """Delete an image and its extracted text"""
+        with self.conn.cursor() as cur:
+            # Delete extracted text first (foreign key constraint)
+            cur.execute("DELETE FROM extracted_text WHERE image_id = %s", (image_id,))
+            # Delete the image record
+            cur.execute("DELETE FROM images WHERE id = %s", (image_id,))
+            self.conn.commit()
 
     def close(self):
         self.conn.close()

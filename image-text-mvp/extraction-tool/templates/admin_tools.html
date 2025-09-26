@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Tools - Image Text Extraction{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Admin Tools</h2>
+    <p>Administrative tools and utilities for managing the image text extraction system.</p>
+
+    <div style="margin-top: 2rem;">
+        <h3>Database Management</h3>
+        <div style="margin: 1rem 0;">
+            <a href="{{ url_for('view_all_images') }}" class="btn">View All Images</a>
+            <a href="#" class="btn btn-secondary" style="margin-left: 0.5rem;">Clear Database</a>
+        </div>
+
+        <h3 style="margin-top: 2rem;">System Information</h3>
+        <div style="margin: 1rem 0;">
+            <a href="#" class="btn">System Status (NYI) </a>
+            <a href="#" class="btn btn-secondary" style="margin-left: 0.5rem;">Export Data</a>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Configuration</h3>
+        <div style="margin: 1rem 0;">
+            <a href="#" class="btn">Settings (NYI) </a>
+            <a href="#" class="btn btn-secondary" style="margin-left: 0.5rem;">Logs</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

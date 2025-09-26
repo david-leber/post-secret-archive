@@ -62,7 +62,7 @@ def upload_post():
 
     if file and allowed_file(file.filename):
         LOG.info(f"Accepted file {file.filename}")
-        filename = secure_filename(file.filename)
+        filename = clean_file_name(file.filename)
         s3_key = f"images/{filename}"
 
         try:
@@ -90,6 +90,17 @@ def upload_post():
         LOG.error(message)
         flash(message)
         return redirect(request.url)
+
+
+def clean_file_name(file: str) -> str:
+    secure_name = secure_filename(file)
+
+    # Remove any extra . characters to prevent issues
+    if secure_name.count(".") > 1:
+        parts = secure_name.split(".")
+        secure_name = "_".join(parts[:-1]) + "." + parts[-1]
+    LOG.info(f"Cleaned filename: {secure_name}")
+    return secure_name
 
 
 @app.route("/extract/<int:image_id>", methods=["GET"])
@@ -173,6 +184,42 @@ def batch():
     else:
         flash("All images have been processed!", "success")
         return redirect(url_for("index"))
+
+
+@app.route("/admin")
+def admin_tools():
+    """Show admin tools page"""
+    return render_template("admin_tools.html")
+
+
+@app.route("/admin/images")
+def view_all_images():
+    """Show all images with their extracted text"""
+    db = DBHandler()
+    images = db.get_all_images_with_text()
+
+    # Get image URLs from S3
+    s3_handler = S3Handler()
+    for image in images:
+        image["url"] = s3_handler.get_file_url(image["s3_key"])
+
+    db.close()
+    return render_template("view_all_images.html", images=images)
+
+
+@app.route("/admin/delete_image/<int:image_id>", methods=["POST"])
+def delete_image(image_id: int):
+    """Delete an image and its extracted text"""
+    db = DBHandler()
+    try:
+        db.delete_image(image_id)
+        flash("Image deleted successfully!", "success")
+    except Exception as e:
+        flash(f"Error deleting image: {str(e)}", "error")
+    finally:
+        db.close()
+
+    return redirect(url_for("view_all_images"))
 
 
 if __name__ == "__main__":
