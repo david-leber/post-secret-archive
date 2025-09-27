@@ -80,22 +80,90 @@ class TextSearchPlugin {
                 padding-bottom: 10px;
             }
             .search-result-item {
+                display: flex;
+                gap: 20px;
                 padding: 20px;
                 margin: 15px 0;
                 border: 1px solid #eee;
                 border-radius: 6px;
                 background-color: #f9f9f9;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                align-items: flex-start;
+            }
+            .search-result-image {
+                flex-shrink: 0;
+                width: 200px;
+                height: 150px;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                object-fit: cover;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+            .search-result-image:hover {
+                transform: scale(1.05);
+            }
+            .search-result-content {
+                flex: 1;
+                min-width: 0;
             }
             .search-result-filename {
                 font-weight: bold;
                 color: #0073aa;
                 margin-bottom: 10px;
                 font-size: 18px;
+                word-break: break-word;
             }
             .search-result-text {
                 line-height: 1.6;
                 color: #333;
+                margin-top: 10px;
+            }
+            .search-result-meta {
+                font-size: 12px;
+                color: #666;
+                margin-bottom: 8px;
+            }
+            .image-modal {
+                display: none;
+                position: fixed;
+                z-index: 10000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.8);
+                cursor: pointer;
+            }
+            .image-modal img {
+                display: block;
+                margin: auto;
+                max-width: 90%;
+                max-height: 90%;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                border-radius: 4px;
+            }
+            .image-modal-close {
+                position: absolute;
+                top: 20px;
+                right: 40px;
+                color: white;
+                font-size: 40px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+            @media (max-width: 768px) {
+                .search-result-item {
+                    flex-direction: column;
+                }
+                .search-result-image {
+                    width: 100%;
+                    max-width: 300px;
+                    align-self: center;
+                }
             }
             .search-highlight {
                 background-color: #ffff00;
@@ -211,12 +279,36 @@ class TextSearchPlugin {
                 let html = '<h3>Search Results</h3>';
                 html += '<div class="search-stats">Found ' + count + ' result' + (count !== 1 ? 's' : '') + ' for "' + searchTerm + '"</div>';
 
-                results.forEach(function(result) {
+                results.forEach(function(result, index) {
                     const highlightedText = highlightSearchTerm(result.text_content, searchTerm);
+                    const modalId = uniqueId + '_modal_' + index;
+
                     html += '<div class="search-result-item">';
+
+                    // Image section
+                    if (result.image_url) {
+                        html += '<img src="' + result.image_url + '" alt="' + result.filename + '" class="search-result-image" onclick="openImageModal(\'' + modalId + '\')" />';
+                    }
+
+                    // Content section
+                    html += '<div class="search-result-content">';
                     html += '<div class="search-result-filename">📄 ' + result.filename + '</div>';
-                    html += '<div class="search-result-text">' + highlightedText + '</div>';
+                    if (result.extracted_at) {
+                        const date = new Date(result.extracted_at).toLocaleDateString();
+                        html += '<div class="search-result-meta">Extracted: ' + date + '</div>';
+                    }
+                    html += '<div class="search-result-text"><strong>Extracted text:</strong><br>' + highlightedText + '</div>';
                     html += '</div>';
+
+                    html += '</div>';
+
+                    // Add modal for full-size image
+                    if (result.image_url) {
+                        html += '<div id="' + modalId + '" class="image-modal" onclick="closeImageModal(\'' + modalId + '\')">';
+                        html += '<span class="image-modal-close">&times;</span>';
+                        html += '<img src="' + result.image_url + '" alt="' + result.filename + '" />';
+                        html += '</div>';
+                    }
                 });
 
                 $results.html(html);
@@ -228,6 +320,25 @@ class TextSearchPlugin {
                 const regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
                 return text.replace(regex, '<span class="search-highlight">$1</span>');
             }
+
+            // Global functions for image modal (need to be global to work with onclick)
+            window.openImageModal = function(modalId) {
+                document.getElementById(modalId).style.display = 'block';
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            };
+
+            window.closeImageModal = function(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+                document.body.style.overflow = 'auto'; // Restore scrolling
+            };
+
+            // Close modal on Escape key
+            $(document).keydown(function(e) {
+                if (e.keyCode === 27) { // Escape key
+                    $('.image-modal:visible').hide();
+                    document.body.style.overflow = 'auto';
+                }
+            });
         });
         </script>
         <?php

@@ -253,10 +253,10 @@ def search_text():
     db = DBHandler()
     try:
         with db.conn.cursor() as cur:
-            # Search for text in extracted content
+            # Search for text in extracted content and get image details
             cur.execute(
                 """
-                SELECT i.filename, et.text_content, et.extracted_at
+                SELECT i.id, i.filename, i.s3_key, et.text_content, et.extracted_at
                 FROM extracted_text et
                 JOIN images i ON et.image_id = i.id
                 WHERE et.text_content ILIKE %s
@@ -267,13 +267,18 @@ def search_text():
             )
 
             results: list[dict[str, Any]] = []
+            s3_handler = S3Handler()
+
             for row in cur.fetchall():
+                image_url = s3_handler.get_file_url(row[2])  # s3_key
                 results.append(
                     {
-                        "filename": row[0],
-                        "text_content": row[1][:500]
-                        + ("..." if len(row[1]) > 500 else ""),
-                        "extracted_at": row[2].isoformat() if row[2] else None,
+                        "id": row[0],
+                        "filename": row[1],
+                        "image_url": image_url,
+                        "text_content": row[3][:500]
+                        + ("..." if len(row[3]) > 500 else ""),
+                        "extracted_at": row[4].isoformat() if row[4] else None,
                     }
                 )
 
