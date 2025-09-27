@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from werkzeug.utils import secure_filename
 from utils.s3_handler import S3Handler
 from utils.db_handler import DBHandler
@@ -240,6 +240,55 @@ def delete_image(image_id: int):
         db.close()
 
     return redirect(url_for("view_all_images"))
+
+
+@app.route("/api/search", methods=["GET"])
+def search_text():
+    """Search for text in extracted content"""
+    query = request.args.get("q", "").strip()
+
+    if not query:
+        return jsonify({"error": "Search query is required"}), 400
+
+    db = DBHandler()
+    try:
+        with db.conn.cursor() as cur:
+            # Search for text in extracted content and get image details
+            cur.execute(
+                """
+                SELECT i.id, i.filename, i.s3_key, et.text_content, et.extracted_at
+                FROM extracted_text et
+                JOIN images i ON et.image_id = i.id
+                WHERE et.text_content ILIKE %s
+                ORDER BY et.extracted_at DESC
+                LIMIT 50
+            """,
+                (f"%{query}%",),
+            )
+
+            results: list[dict[str, Any]] = []
+            s3_handler = S3Handler()
+
+            for row in cur.fetchall():
+                image_url = s3_handler.get_file_url(row[2])  # s3_key
+                results.append(
+                    {
+                        "id": row[0],
+                        "filename": row[1],
+                        "image_url": image_url,
+                        "text_content": row[3][:500]
+                        + ("..." if len(row[3]) > 500 else ""),
+                        "extracted_at": row[4].isoformat() if row[4] else None,
+                    }
+                )
+
+            return jsonify({"results": results, "count": len(results)})
+
+    except Exception as e:
+        LOG.error(f"Search error: {str(e)}")
+        return jsonify({"error": "Search failed"}), 500
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":

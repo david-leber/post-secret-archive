@@ -36,7 +36,7 @@ services:
       - WORDPRESS_DB_NAME=wordpress
     volumes:
       - wordpress-data:/var/www/html
-      - ./wordpress-plugins:/var/www/html/wp-content/plugins/custom
+      - ./image-text-mvp/wordpress-plugins:/var/www/html/wp-content/plugins
     depends_on:
       - wordpress-db
 
